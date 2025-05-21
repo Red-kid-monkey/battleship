@@ -1,0 +1,133 @@
+:root {
+    --primary-color: #003366;
+}
+
+/* Base Reste and Typography */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f8ff;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header, footer {
+    background-color: var(--primary-color);
+    color: #fff;
+    text-align: center;
+    padding: 1rem;
+}
+
+main {
+    flex: 1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Message Container */
+.message-container {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    min-height: 1.5em;
+}
+
+/* Ship Placement UI */
+.placement-container {
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 1.5rem;
+}
+
+/* Game Boards */
+.game-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(11, auto);
+    grid-template-rows: repeat(11, auto);
+    gap: 2px;
+    background-color: #87cefa;
+    padding: 4px;
+    border: 2px solid var(--primary-color);
+}
+
+.board-cell {
+    width: 2rem;
+    height: 2rem;
+    background-color: #e0ffff;
+    border: 1px solid #b0c4de;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.board-cell:hover {
+    background-color: #add8e6;
+}
+
+.board-cell.hit {
+    background-color: #ff4d4d;
+}
+
+.board-cell.miss {
+    background-color: #f0e68c;
+}
+
+/* Ship Placement Buttons */
+.ship-button {
+    padding: 0.5rem 1rem;
+    margin: 0.25rem;
+    border: none;
+    border-radius: 0.25rem;
+    background-color: #0059b3;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.ship-button:hover {
+    transform: scale(1.05);
+}
+
+.ship-button.selected {
+    background-color: #ff9933;
+}
+
+/* Game Over Overlay */
+.game-over {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-size: 2rem;
+    z-index: 1000;
+}
+
+.game-over button {
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    background-color: #ff4d4d;
+    color: #fff;
+    cursor: pointer;
+}
+
