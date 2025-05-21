@@ -51,7 +51,7 @@ const Player = (name, isComputer = false) => {
                 }
             }
             // if we get here, the board is full
-            return [0, 0];
+            return null;
             }
         } while (previousAttacks.has(key));
 
@@ -82,9 +82,24 @@ const Player = (name, isComputer = false) => {
          * @returns {string|null} Attack result: 'hit', 'miss', or null
          */
         attack(enemyGameboard, row, col) {
+            let attackCoordinates;
             if (isComputer) {
-                // Computer player makes a random attack
-                [row, col] = generateRandomAttack(enemyGameboard);
+                attackCoordinates = generateRandomAttack(enemyGameboard);
+                if (!attackCoordinates) {
+                    return null;
+                }
+                [row, col] = attackCoordinates;
+            } else {
+                if (previousAttacks.has(`${row},${col}`)) {
+                    return null;
+                }
+            }
+
+            const key = `${row},${col}`;
+
+            // Prevent re-attacking the same cell by the same player
+            if (previousAttacks.has(key)) {
+                return null;
             }
 
             // Record this attack
