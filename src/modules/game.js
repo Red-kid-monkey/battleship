@@ -2,7 +2,7 @@ import Ship from './modules/ship.js';
 import Gameboard from './modules/gameboard.js';
 import Player from './modules/player.js';
 import DOM from './modules/dom.js';
-import { start } from 'pretty-error';
+
 
 /**
  * Game controller module
@@ -49,7 +49,7 @@ const Game = (() => {
      */
     const setUpPlacement = () => {
         // Create the players
-        player = Player('Player', false);
+        player = Player('Player 1', false);
         computer = Player('Computer', true);
 
         // Set current player
@@ -86,8 +86,10 @@ const Game = (() => {
      */
     const handleShipSelection = (index, orientation) => {
         if (orientation === 'random') {
-            // Place ships randomly
-            placeShipsRandomly();
+            placeShipsRandomlyForPlayer(player, shipTypes); // Place player's ships randomly
+            // shipsToPlace should be empty now, update UI if necessary or startGame will handle it
+            DOM.createShipPlacementUI([], handleShipSelection); // Clear placement UI for ships
+            startGame(); // Proceed to start game
             return;
         }
 
@@ -100,15 +102,16 @@ const Game = (() => {
      * @param {number} row - Row index
      * @param {number} col - Column index
      */
-    const handleCellClick = (row, col) => {
+    const handleCellClick = (row, col, boardId) => {
         if (gameOver) return;
 
         if (shipPlacementPhase) {
-            // Place ship
-            placeShip(row, col);
+            if (boardId === 'player-board' || boardId === undefined) {
+                placeShip(row, col);
+            }
         } else {
-            // Player's turn
-            if (currentPlayer === player) {
+            // Attack phase
+            if (boardId === 'enemy-board' && currentPlayer === player) {
                 processPlayerAttack(row, col);
             }
         }
@@ -121,12 +124,13 @@ const Game = (() => {
      */
     const placeShip = (row, col) => {
         if (selectedShipIndex < 0 || selectedShipIndex >= shipsToPlace.length) {
+            DOM.displayMessage('Please select a ship to place', 'error');
             return;
         }
 
         const shipData = shipsToPlace[selectedShipIndex];
 
-        if (!shipData) {
+        if (!shipData || !shipData.ship) {
             DOM.displayMessage('No ship selected', 'error');
             return;
         }
@@ -145,7 +149,7 @@ const Game = (() => {
             shipsToPlace.splice(selectedShipIndex, 1);
 
             // Update the board
-            DOM.updateBoards(player.getGameboard(), computer.getGameboard(), true);
+            DOM.updateBoards(player.getGameboard(), computer.getGameboard(), false);
 
             // Create updated ship placement UI
             DOM.createShipPlacementUI(shipsToPlace, handleShipSelection);
@@ -154,6 +158,11 @@ const Game = (() => {
             if (shipsToPlace.length === 0) {
                 // ALL ships placed, start the game
                 startGame();
+            } else {
+                if (shipsToPlace.length > 0) {
+                    selectedShipIndex = 0;
+                    DOM.displayMessage(`Ship ${shipData.name} placed .Next: ${shipsToPlace[0].name}.`, 'info')
+                }
             }
         } else {
             // Ship placement failed
@@ -161,54 +170,41 @@ const Game = (() => {
         }
     };
 
-    /**
-     *  Place all ships randomly 
+      /**
+     * Places all standard ships randomly for a given player.
+     * @param {object} targetPlayer - The player (player or computer) for whom to place ships.
+     * @param {Array} shipsDefinition - Array of ship types {name, length}.
      */
-    const placeShipsRandomly = () => {
-        // Clear the board first
-        player = Player('Player', false);
-
-        // Place each ship randomly
-        for (const shipData of shipTypes) {
-            const ship = Ship(shipData.length);
-            let placed = false;
-
-            while (!placed) {
-                const row = Math.floor(Math.random() * 10);
-                const col = Math.floor(Math.random() * 10);
-                const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
-
-                placed = player.getGameboard().placeShip(ship, row, col, orientation);
-            }
+    const placeShipsRandomlyForPlayer = (targetPlayer, shipsDefinition) => {
+        // If it's human, clear the board first
+        if (targetPlayer === player) {
+            // Potentially reset the player's board if they click "Random Placement" mid-setup
+            // For now, assuming this is called at the start or if they choose to override manual placement.
+            // This might involve creating a new Gameboard for the player or clearing existing ships.
         }
 
-        // Clear ships to place
-        shipsToPlace.length = 0;
-
-        // Update the board
-        DOM.updateBoards(player.getGameboard(), computer.getGameboard(), true);
-
-        // Start the game
-        startGame();
-    };
-
-    /**
-     *  Place computer ships randomly
-     */
-    const placeComputerShipRandomly = () => {
-        for (const shipData of shipTypes) {
-            const ship = Ship(shipData.length);
+        shipsDefinition.forEach(shipData => {
+            const ship = Ship(shipData.length)
             let placed = false;
-
-            while (!placed) {
+            let attempts = 0; // Prevent infinite loop
+            while (!placed && attempts < 200) {
                 const row = Math.floor(Math.random() * 10);
-                const col = Math.floor(Math.random() * 10);
+                const xol = Math.floor(Math.random() * 10);
                 const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
-                
-                placed = player.getGameboard().placeShip(ship, row, col, orientation);
+                placed = targetPlayer.getGameboard().placeShip(ship, row, col, orientation);
+                attempts++
             }
+            if (!placed) {
+                console.error(`Could not place ${shipData.name} for ${targetPlayer.getName()} after ${attempts} attempts.`);
+            }
+        });
+
+        // If human player, clear shipsToPlace
+        if (targetPlayer === player) {
+            shipsToPlace.length = 0;
         }
     };
+
 
     /**
      * Start the game
@@ -219,12 +215,17 @@ const Game = (() => {
         if (placementContainer) {
             placementContainer.innerHTML = '';
         }
-
-        // Place computer ships
-        placeComputerShipRandomly();
-
+        if (computer.getGameboard().allShipsSunk() && computer.getGameboard().getMissedAttacks().length === 0) {
+        placeShipsRandomlyForPlayer(computer, shipTypes)
+    }
         // End placement phase
         shipPlacementPhase = false;
+
+        // Ensure game doesn't end prematurely
+        gameOver = false;
+
+        // Player always starts
+        currentPlayer = player;
 
         // Display start message
         DOM.displayMessage('Game started! Click on enemy board to attack', 'success');
@@ -239,7 +240,7 @@ const Game = (() => {
      * @param {number} col - Column index
      */
     const processPlayerAttack = (row, col) => {
-        if (currentPlayer !== player) return;
+        if (currentPlayer !== player || gameOver) return;
 
         const result = player.attack(computer.getGameboard(), row, col);
 
@@ -264,16 +265,20 @@ const Game = (() => {
             result === 'hit' ? 'success' : 'info'
         );
 
+        if (!gameOver) {
         // Switch to computer's turn
         currentPlayer = computer;
+
+        // Add a slight delay
         setTimeout(computerTurn, 1000);
+      }
     };
 
     /**
      *  Computer's turn
      */
     const computerTurn = () => {
-        if (gameOver) return;
+        if (gameOver || currentPlayer !== computer) return;
 
         const result = computer.attack(player.getGameboard());
 
@@ -292,8 +297,10 @@ const Game = (() => {
             result === 'hit' ? 'error' : 'info'
         );
 
+        if (!gameOver) {
         // Switch back to player's turn
         currentPlayer = player;
+        }
     };
 
     /**
@@ -302,6 +309,7 @@ const Game = (() => {
      */
     const endGame = (playerWon) => {
         gameOver = true;
+        shipPlacementPhase = false;
 
         // Show all ships
         DOM.updateBoards(player.getGameboard(), computer.getGameboard(), true);
