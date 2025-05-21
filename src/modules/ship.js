@@ -4,37 +4,35 @@
  * @returns {object} Ship object with methods to track hits and sunk status
  */
 const ship = (length) => {
-    // Private variable to track number of hits
-    let hits = 0;
+    const hits = Array(length).fill(false);
+
+    const hit = (position) => {
+        if (position >= 0 && position < length) {
+            hits[position] = true;
+        }
+    };
+
+    const isHitAt = (position) => {
+        return position >= 0 && position < length && hits[position]
+    };
+
+    const isSunk = () => {
+        return hits.every(h => h === true);
+    };
+
+    const getHits = () => { // If needed elsewhere, though isHitAt is more direct for rendering
+        return hits.reduce((acc, cur, idx) => {
+            if (cur) acc.push(idx);
+            return acc;
+        }, []);
+    };
 
     return {
         length,
-
-        /**
-         * Register a hit on the ship
-         */
-        hit() {
-            if (hits < length) {
-                hits++
-            }
-        },
-
-        /**
-         * Get the current number of hits
-         * @returns {number} Number of hits on the ship
-         */
-        getHits() {
-            return hits;
-        },
-
-        /**
-         * check if the ship is sunk
-         * @returns {boolean} True if the ship is sunk, false otherwise
-         */
-        isSunk() {
-            return hits >= length;
-        }
-    }
-}
+        hit,
+        isHitAt, // Important for DOM
+        isSunk,
+    };
+};
 
 export default ship;
