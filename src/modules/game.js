@@ -189,7 +189,7 @@ const Game = (() => {
             let attempts = 0; // Prevent infinite loop
             while (!placed && attempts < 200) {
                 const row = Math.floor(Math.random() * 10);
-                const xol = Math.floor(Math.random() * 10);
+                const col = Math.floor(Math.random() * 10);
                 const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
                 placed = targetPlayer.getGameboard().placeShip(ship, row, col, orientation);
                 attempts++
