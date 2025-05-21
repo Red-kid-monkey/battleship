@@ -1,18 +1,16 @@
-const { message } = require("statuses");
-
 /**
  *  Module for DOM manipulation
  */
 const DOM = (() => {
     /**
      *  Create the game boards in the DOM
-     * @param {function} attackHandler - Function to handle attacks
+     * @param {function} cellClickHandler - Function to handle attacks
      */
-    const createGameBoards = (attackHandler) => {
+    const createGameBoards = (cellClickHandler) => {
         const gameContainer = document.querySelector('.game-container');
 
         if (!gameContainer) {
-            console.error('Game container not found');
+            console.error('Game container not found. UI will not be created');
             return;
         }
 
@@ -29,18 +27,18 @@ const DOM = (() => {
         playerLabel.textContent = 'Your Fleet';
         playerBoardContainer.appendChild(playerLabel);
 
-        const playerBoard = createBoard('player-board');
+        const playerBoard = createBoard('player-board', cellClickHandler);
         playerBoardContainer.appendChild(playerBoard);
 
         // Create enemy board
         const enemyBoardContainer = document.createElement('div');
-        enemyBoardContainer.classList.add('board-container');
+        enemyBoardContainer.classList.add('board-container', 'enemy-board-container');
 
-        const enemyLabel = createElement('h2');
+        const enemyLabel = document.createElement('h2');
         enemyLabel.textContent = 'Enemy Waters';
         enemyBoardContainer.appendChild(enemyLabel);
 
-        const enemyBoard = createBoard('enemy-board', attackHandler);
+        const enemyBoard = createBoard('enemy-board', cellClickHandler);
         enemyBoardContainer.appendChild(enemyBoard);
 
         // Add both boards to the container
@@ -51,29 +49,29 @@ const DOM = (() => {
     /**
      * Create a single game board
      * @param {string} id - ID for the board element
-     * @param {function} [clickHandler] - Optional click handler for the board cells
+     * @param {function} [cellClickHandler] - Optional click handler for the board cells
      * @returns {HTMLelemnt} the created board element
      */
-    const createBoard = (id, clickHandler = null) => {
+    const createBoard = (id, cellClickHandler = null) => {
         const board = document.createElement('div');
         board.id = id;
         board.classList.add('board');
 
         // Add row and column labels
-        const labels = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        const collabels = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
         // Create the top row with column labels
         const labelRow = document.createElement('div');
         labelRow.classList.add('board-row', 'label-row');
 
-        for (let i = 0; i < 11; i++) {
-            const label = document.createElement('div');
-            label.classList.add('board-cell', 'label');
-            label.textContent = labels[i];
-            labelRow.appendChild(label);
-        }
+        collabels.forEach(label => {
+            const labelCell = document.createElement('div');
+            labelCell.classList.add('board-cell', 'label');
+            labelCell.textContent = label;
+            labelRow.appendChild(labelCell)
+        });
+        board.appendChild(labelRow)
 
-        board.appendChild(labelRow);
 
         // Create the board cells with row labels
         for (let row = 0; row < 10; row++) {
@@ -81,10 +79,10 @@ const DOM = (() => {
             boardRow.classList.add('board-row');
 
             // Add row label
-            const rowLabel = document.createElement('div');
-            rowLabel.classList.add('board-cell', 'label');
-            rowLabel.textContent = row + 1;
-            boardRow.appendChild(rowLabel);
+            const rowLabelCell = document.createElement('div');
+            rowLabelCell.classList.add('board-cell', 'label');
+            rowLabelCell.textContent = row + 1;
+            boardRow.appendChild(rowLabelCell);
 
             // Add cells
             for (let col = 0; col < 10; col++) {
@@ -92,9 +90,10 @@ const DOM = (() => {
                 cell.classList.add('board-cell');
                 cell.dataset.row = row;
                 cell.dataset.col = col;
+                cell.dataset.boardId = id;
 
-                if (clickHandler) {
-                    cell.addEventListener('click', () => clickHandler(row, col));
+                if (cellClickHandler) {
+                    cell.addEventListener('click', () => cellClickHandler(row, col, id));
                 }
 
                 boardRow.appendChild(cell);
@@ -113,8 +112,8 @@ const DOM = (() => {
      * @param {boollean} showEnemyShips - whether to show enemy ships
      */
     const updateBoards = (playerGameBoard, enemyGameBoard, showEnemyShips = false) => {
-        updateBoard('player-board', playerGameBoard, true);
-        updateBoard('enemy-board', enemyGameBoard, showEnemyShips);
+        updateSingleBoard('player-board', playerGameBoard, true);
+        updateSingleBoard('enemy-board', enemyGameBoard, showEnemyShips);
     }
 
     /**
@@ -123,64 +122,64 @@ const DOM = (() => {
      * @param {Object} gameBoard - The gameboard to display
      * @param {boollean} showShips - whether to show ships
      */
-    const updateBoard = (boardId, gameBoard, showShips) => {
-        const board = document.getElementById(boardId);
-        if (!board) return;
+    const updateSingleBoard = (boardId, gameboardInstance, showShips) => {
+        const boardElement = document.getElementById(boardId);
+        if (!boardElement) {
+            console.error(`Board element with ID '${boardId}' not found.`);
+            return;
+        }
 
-        const boardData = gameBoard.getBoard();
-        const missedAttacks = gameBoard.getMissedAttacks();
+        const boardData = gameboardInstance.getBoard(); // Array of arrays
+        const missedAttacks = gameboardInstance.getMissedAttacks(); // Array of [row, col]
 
-        // Clear previous state
-        const cells = board.querySelectorAll('.board-cell:not(.label)');
-        cells.forEach(cell => {
-            cell.className = 'board-cell';
-        });
+        // Iterate over all cells to update them
+        for (let r = 0; r < 10; r++) {
+            for (let c = 0; c < 10; c++) {
+                const cellElement = boardElement.querySelector(`.board-cell[data-row="${r}"][data-col="${c}"]`);
+                if (!cellElement) continue;
 
-        // Add ships (if visible)
-        if (showShips) {
-            for (let row = 0; row < 10; row++) {
-                for (let col = 0; col < 10; col++) {
-                    const cell = boardData[row][col];
-                    if (cell !== null && cell.ship) {
-                        const domCell = board.querySelector(`.board-cell[data-row="${row}"][data-col="${col}"]`);
-                        if (domCell) {
-                            domCell.classList.add('ship');
+                // Reset classes, keep essential ones like 'board-cell'
+                cellElement.className = 'board-cell';
 
-                            // Check if this part of the ship is hit
-                            if (cell.ship.getHits() > cell.index) {
-                                domCell.classList.add('hit');
-                            }
-                        }
+                const cellState = boardData[r][c]; // null or { ship, index }
+
+                if (cellState && cellState.ship) { // There's a ship part here
+                    if (showShips) {
+                        cellElement.classList.add('ship');
+                    }
+
+
+                    if (cellState.ship.isHitAt(cellState.index)) { // Requires ship to have `isHitAt(index)` method
+                        cellElement.classList.add('hit');
+                        if (boardId === 'enemy-board' && !showShips) {
+                            cellElement.classList.add('enemy-hit');
                     }
                 }
             }
         }
-
-        // Add missed attacks
+        
+        // Mark missed attacks
         missedAttacks.forEach(([row, col]) => {
-            const domCell = board.querySelector(`.board-cell[data-row="${row}"][data-col="${col}"]`);
-            if (domCell) {
-                domCell.classList.add('miss');
+            const missedCell = boardElement.querySelector(`.board-cell[data-row="${row}"][data-col="${col}"]`);
+            if (missedCell) {
+                missedCell.classList.add('miss');
             }
         });
 
-        // Add hit markers (even if ships are not visible)
-        for (let row = 0; row < 10; row++) {
-            for (let col = 0; col < 10; col++) {
-                const cell = boardData[row][col];
-                if (cell !== null && cell.ship) {
-                    const domCell = board.querySelector(`.board-cell[data-row="${row}"][data-col="${col}"]`);
-                    if (domCell && cell.ship.getHits() > cell.index) {
-                        domCell.classList.add('hit');
 
-                        // If ships are not visible, we need to add the hit marker
-                        if (!showShips) {
-                            domCell.classList.add('enemy-hit');
-                        }
+        if (boardId === 'enemy-board' && !showShips) {
+            const allAttacksCoords = Array.from(gameboardInstance.allAttacks || []).map(key => key.split(',').map(Number));
+            allAttacksCoords.forEach(([row, col]) => {
+                 const cellState = boardData[row][col];
+                 if (cellState && cellState.ship) { // It was a hit
+                    const domCell = boardElement.querySelector(`.board-cell[data-row="${row}"][data-col="${col}"]`);
+                    if (domCell) {
+                        domCell.classList.add('hit'); // General hit marker
                     }
-                }
-            }
+                 }
+            });
         }
+        
     };
 
     /**
@@ -190,8 +189,10 @@ const DOM = (() => {
      */
     const displayMessage = (message, type = 'info') => {
         const messageContainer = document.querySelector('.message-container');
-        if (!messageContainer) return;
-
+        if (!messageContainer) {
+            console.warn('Message container not found. Message not displayed', message)
+            return;
+        }    
         const messageElement = document.createElement('div');
         messageElement.textContent = message;
         messageElement.classList.add('message', type);
@@ -206,7 +207,7 @@ const DOM = (() => {
                 if (messageContainer.contains(messageElement)) {
                     messageContainer.removeChild(messageElement);
                 }
-            }, 5000);
+            }, 4000);
         }
     }
 
@@ -217,10 +218,19 @@ const DOM = (() => {
      */
     const createShipPlacementUI = (ships, placementHandler) => {
         const placementContainer = document.querySelector('.placement-container');
-        if (!placementContainer) return;
+        if (!placementContainer) {
+            console.warn('Placement container not found. Ship placement UI not created.');
+            return;
+        }
 
         // Clear existing content
         placementContainer.innerHTML = '';
+
+        if (ships.length === 0) {
+            placementContainer.style.display = 'none'
+            return
+        }
+        placementContainer.style.display = 'block';
 
         // Create title
         const title = document.createElement('h2');
@@ -241,6 +251,7 @@ const DOM = (() => {
             shipElement.classList.add('ship-option');
             shipElement.dataset.index = index;
             shipElement.dataset.length = ship.length;
+            shipElement.textContent = `${ship.name} (${ship.length})`
 
             // Create visual representation of the ship
             for (let i = 0; i < ship.length; i++) {
@@ -332,7 +343,7 @@ const DOM = (() => {
      * @param {function} restartHandler - Function to handle restarting the game
      */
     const showGameOver = (playerWon, restartHandler) => {
-        const gameOverContainer = document.createElement('div');
+        const gameOverContainer = document.createElement('div') || document.body; // Fallback to bodt
         gameOverContainer.classList.add('game-over');
 
         const gameOverMessage = document.createElement('h2');
@@ -384,6 +395,6 @@ const DOM = (() => {
         createShipPlacementUI,
         showGameOver
     };
-})();
+}})();
 
 export default DOM;
