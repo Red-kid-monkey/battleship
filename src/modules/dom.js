@@ -164,22 +164,7 @@ const DOM = (() => {
             if (missedCell) {
                 missedCell.classList.add('miss');
             }
-        });
-
-
-        if (boardId === 'enemy-board' && !showShips) {
-            const allAttacksCoords = Array.from(gameboardInstance.allAttacks || []).map(key => key.split(',').map(Number));
-            allAttacksCoords.forEach(([row, col]) => {
-                 const cellState = boardData[row][col];
-                 if (cellState && cellState.ship) { // It was a hit
-                    const domCell = boardElement.querySelector(`.board-cell[data-row="${row}"][data-col="${col}"]`);
-                    if (domCell) {
-                        domCell.classList.add('hit'); // General hit marker
-                    }
-                 }
-            });
-        }
-        
+        });        
     };
 
     /**
