@@ -14,7 +14,7 @@ const Gameboard = () => {
     const missedAttacks = [];
 
     //Track all attacks (hit or miss) to prevent duplicates
-    const allAttacks = [];
+    const allAttacks = new Set();
     
     /**
      * Check if a ship placement is valid
@@ -29,19 +29,21 @@ const Gameboard = () => {
 
         // Check if placement is within board boundaries
         if (orientation === 'horizontal') {
-            if (col + length > 10) return false;
+            if (col < 0 || row < 0 || col + length > 10 || row >= 10) return false;
 
             // Check if any cells are already occupied
             for (let i = 0; i < length; i++) {
                 if (board[row][col + i] !== null) return false;
             }
         } else if (orientation === 'vertical') {
-            if (row + length > 10) return false;
+            if (row < 0 || col < 0 || row + length > 10 || col >= 10) return false;
 
             // Check if any cells are already occupied
             for (let i = 0; i < length; i++) {
                 if (board[row + i][col] !== null) return false;
             }
+        } else {
+            return false;
         }
 
         return true;
@@ -92,13 +94,20 @@ const Gameboard = () => {
          * @returns {string|null} 'hit', 'miss', or null if already attacked
          */
         receiveAttack(row, col) {
+            // Check for out-of-bounds attacks
+            if (row < 0 || row >= 10 || col < 0 || col >= 10) {
+                return null;
+            }
+
+            const attackKey = `${row},${col}`
+
             // Check if this position has already been attacked
-            if (allAttacks.some(([r, c]) => r === row && c === col)) {
+            if (allAttacks.has(attackKey)) {
                 return null;
             }
 
             // Record this attack
-            allAttacks.push([row, col]);
+            allAttacks.add(attackKey);
 
             const cell = board[row][col];
 
@@ -126,7 +135,13 @@ const Gameboard = () => {
          * @returns {boolean} whether all ships are sunk
          */
         allShipsSunk() {
-            if (ships.length === 0) return true;
+            if (ships.length === 0 && allAttacks.size > 0) { 
+                // If there were no ships to begin with, but attacks were made, consider it not "all sunk" in terms of game objective
+                // Or, if game setup ensures ships are always present, this check might be simpler.
+                // For a standard game, this implies no ships were placed, which might be a setup issue.
+                return false; // Or true if an empty board means no ships to sink. Context dependent.
+            }
+            if (ships.length === 0) return true; // No ships placed, so all (zero) are sunk.
             return ships.every(ship => ship.isSunk());
         }
     }
