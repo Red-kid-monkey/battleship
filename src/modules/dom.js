@@ -15,8 +15,6 @@ const DOM = (() => {
         }
 
         // Clear existing content
-
-
         gameContainer.innerHTML = '';
 
         // Create player board
@@ -71,7 +69,6 @@ const DOM = (() => {
             labelRow.appendChild(labelCell)
         });
         board.appendChild(labelRow)
-
 
         // Create the board cells with row labels
         for (let row = 0; row < 10; row++) {
@@ -148,11 +145,11 @@ const DOM = (() => {
                         cellElement.classList.add('ship');
                     }
 
-
                     if (cellState.ship.isHitAt(cellState.index)) { // Requires ship to have `isHitAt(index)` method
                         cellElement.classList.add('hit');
                         if (boardId === 'enemy-board' && !showShips) {
                             cellElement.classList.add('enemy-hit');
+                        }
                     }
                 }
             }
@@ -380,6 +377,6 @@ const DOM = (() => {
         createShipPlacementUI,
         showGameOver
     };
-}})();
+})();
 
 export default DOM;
