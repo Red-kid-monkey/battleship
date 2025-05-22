@@ -1,7 +1,7 @@
-import Ship from './modules/ship.js';
-import Gameboard from './modules/gameboard.js';
-import Player from './modules/player.js';
-import DOM from './modules/dom.js';
+import Ship from './ship.js';
+import Gameboard from './gameboard.js';
+import Player from './player.js';
+import DOM from './dom.js';
 
 
 /**
@@ -73,7 +73,7 @@ const Game = (() => {
         DOM.createGameBoards(handleCellClick);
 
         // Update the boards
-        DOM.updateBoards(player.getGameboard(), computer.getGameboard(), false);
+        DOM.updateBoards(player.getGameBoard(), computer.getGameBoard(), false);
 
         // Create ship placement UI
         DOM.createShipPlacementUI(shipsToPlace, handleShipSelection);
@@ -136,7 +136,7 @@ const Game = (() => {
         }
 
 
-        const result = player.getGameboard().placeShip(
+        const result = player.getGameBoard().placeShip(
             shipData.ship,
             row,
             col,
@@ -149,7 +149,7 @@ const Game = (() => {
             shipsToPlace.splice(selectedShipIndex, 1);
 
             // Update the board
-            DOM.updateBoards(player.getGameboard(), computer.getGameboard(), false);
+            DOM.updateBoards(player.getGameBoard(), computer.getGameBoard(), false);
 
             // Create updated ship placement UI
             DOM.createShipPlacementUI(shipsToPlace, handleShipSelection);
@@ -161,7 +161,7 @@ const Game = (() => {
             } else {
                 if (shipsToPlace.length > 0) {
                     selectedShipIndex = 0;
-                    DOM.displayMessage(`Ship ${shipData.name} placed .Next: ${shipsToPlace[0].name}.`, 'info')
+                    DOM.displayMessage(`Ship ${shipData.name} placed. Next: ${shipsToPlace[0].name}.`, 'info')
                 }
             }
         } else {
@@ -191,7 +191,7 @@ const Game = (() => {
                 const row = Math.floor(Math.random() * 10);
                 const col = Math.floor(Math.random() * 10);
                 const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
-                placed = targetPlayer.getGameboard().placeShip(ship, row, col, orientation);
+                placed = targetPlayer.getGameBoard().placeShip(ship, row, col, orientation);
                 attempts++
             }
             if (!placed) {
@@ -215,7 +215,7 @@ const Game = (() => {
         if (placementContainer) {
             placementContainer.innerHTML = '';
         }
-        if (computer.getGameboard().allShipsSunk() && computer.getGameboard().getMissedAttacks().length === 0) {
+        if (computer.getGameBoard().allShipsSunk() && computer.getGameBoard().getMissedAttacks().length === 0) {
         placeShipsRandomlyForPlayer(computer, shipTypes)
     }
         // End placement phase
@@ -231,7 +231,7 @@ const Game = (() => {
         DOM.displayMessage('Game started! Click on enemy board to attack', 'success');
 
         // Update boards
-        DOM.updateBoards(player.getGameboard(), computer.getGameboard(), false);
+        DOM.updateBoards(player.getGameBoard(), computer.getGameBoard(), false);
     };
 
     /**
@@ -242,7 +242,7 @@ const Game = (() => {
     const processPlayerAttack = (row, col) => {
         if (currentPlayer !== player || gameOver) return;
 
-        const result = player.attack(computer.getGameboard(), row, col);
+        const result = player.attack(computer.getGameBoard(), row, col);
 
         if (result === null) {
             // Invalid attack (already attacked this cell)
@@ -251,10 +251,10 @@ const Game = (() => {
         } 
 
         // Update the boards
-        DOM.updateBoards(player.getGameboard(), computer.getGameboard(), false);
+        DOM.updateBoards(player.getGameBoard(), computer.getGameBoard(), false);
 
         // Check for win condition
-        if (computer.getGameboard().allShipsSunk()) {
+        if (computer.getGameBoard().allShipsSunk()) {
             endGame(true);
             return
         }
@@ -280,13 +280,13 @@ const Game = (() => {
     const computerTurn = () => {
         if (gameOver || currentPlayer !== computer) return;
 
-        const result = computer.attack(player.getGameboard());
+        const result = computer.attack(player.getGameBoard());
 
         // Update the boards
-        DOM.updateBoards(player.getGameboard(), computer.getGameboard(), false);
+        DOM.updateBoards(player.getGameBoard(), computer.getGameBoard(), false);
 
         // Check for win condition
-        if (player.getGameboard().allShipsSunk()) {
+        if (player.getGameBoard().allShipsSunk()) {
             endGame(false);
             return;
         }
@@ -312,7 +312,7 @@ const Game = (() => {
         shipPlacementPhase = false;
 
         // Show all ships
-        DOM.updateBoards(player.getGameboard(), computer.getGameboard(), true);
+        DOM.updateBoards(player.getGameBoard(), computer.getGameBoard(), true);
 
         // Show game over screen
         DOM.showGameOver(playerWon, restartGame);
