@@ -49,6 +49,11 @@ const Gameboard = () => {
         return true;
     }
 
+    const canPlaceShip = (length, row, col, orientation) => {
+        const tempShip = { length }
+        return isValidPlacement(tempShip, row, col, orientation)
+    }
+
     return {
         /**
          * Get the current state of the board
