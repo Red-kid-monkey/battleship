@@ -11,6 +11,12 @@ const Player = (name, isComputer = false) => {
     const gameboard = Gameboard();
     const previousAttacks = new Set();
 
+    //AI-specific state
+    const aiState = {
+        potentialTargets: [], // Queue of {row, col} to try after a hit
+        lastHitStreak: [], //for more advanced line hunting
+    };
+
     /**
      * Generate a random integer between min and max (inclusive)
      * @param {number} min - The minimum value
@@ -30,6 +36,16 @@ const Player = (name, isComputer = false) => {
         const board = enemyGameboard.getBoard();
         const boardSize = board.length;
 
+        // Try AI-targeted cells first
+        while (aiState.potentialTargets.length > 0) {
+            const [ row, col ] = aiState.potentialTargets.shift() // Get the highest priority target
+            const key = `${row}, ${col}`
+            if (row >= 0 && row < boardSize && col >= 0 && col < boardSize && !previousAttacks.has(key)) {
+                return [row, col];
+            }
+        }
+
+        // Fallback to random attack if no smart targets
         let row, col, key;
         let attempts = 0;
         const maxAttempts = 100; // Prevent infinite loop
@@ -105,18 +121,58 @@ const Player = (name, isComputer = false) => {
             // Record this attack
             previousAttacks.add(`${row},${col}`);
 
-            // Make the attack
-            return enemyGameboard.receiveAttack(row, col);
-        },
+            const result = enemyGameboard.receiveAttack(row, col);
 
-        /**
+            if (isComputer && result === 'hit') {
+                const hitCell = enemyGameboard.getBoard()[row][col];
+                if (hitCell && hitCell.ship) {
+                    if (hitCell.ship.isSunk()) {
+                        // Ship is sunk, clear current targets and streak
+                        aiState.potentialTargets = [];
+                        aiState.lastHitsStreak = []; // Reset streak
+                    } else {
+                        // It's a hit, and the ship is not sunk yet
+                        // adjacent cells to potentialTargets queue.
+                        const newTargets = [];
+                        const deltas = [[-1, 0], [1, 0], [0, -1], [0,1]]; // N, S, W, E
+
+                        deltas.forEach(([dr, dc]) => {
+                            const nextRow = row + dr;
+                            const nextCol = col + dc;
+                            const targetKey = `${nextRow}, ${nextCol}`
+
+                            if (nextRow >= 0 && nextRow < boardSize &&
+                                nextCol >= 0 && nextCol < boardSize &&
+                                !previousAttacks.has(targetKey)) {
+                                    // Avoid duplication to potentialTargets
+                                    if (aiState.potentialTargets.some(t => t.row === nextRow && t.col === nextCol)) {
+                                        newTargets.push({ row: nextRow, col: nextCol });
+                                    }
+                                }
+                            });
+                            // Add new targets to the front of the queue to be tried
+                            aiState.potentialTargets = [...newTargets, ...aiState.potentialTargets];
+                        }
+                    }
+                }
+                return null
+            },
+
+            /**
          * Check if the player is a computer
          * @returns {boolean} whether the player is a computer
          */
         isComputer() {
             return isComputer;
+        },
+        // Add this method if you need to reset AI state for a new game
+        resetAI() {
+            if (isComputer) {
+                aiState.potentialTargets = [];
+                aiState.lastHitStreak = [];
+                // previousAttacks are typically cleared by creating a new Player or game instance
+            }
         }
-    }
-}
+}}
 
 export default Player;
