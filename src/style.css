@@ -383,10 +383,14 @@ main {
     margin: 0 auto;
 }
 
+.board-row {
+    display: contents;
+}
+
 .board-cell {
     aspect-ratio: 1;
     background: linear-gradient(135deg, #e0f2fe, #b3e5fc);
-    border: 1px solid rgba(30, 58, 95, 0.3);
+    border: 2px solid rgba(30, 58, 95, 0.3);
     cursor: pointer;
     transition: all var(--transition-fast);
     border-radius: var(--radius-sm);
@@ -397,6 +401,8 @@ main {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--navy-primary);
+    min-width: 0;
+    min-height: 0;
 }
 
 .board-cell:hover:not(.label) {
