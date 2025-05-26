@@ -332,19 +332,17 @@ const Game = (() => {
     /**
      * Process an attack from attacker to defender
      */
-    const processAttack = (attacker, defender, row, col) => {
+    const processAttack = (attacker, defender, humanRow, humanCol) => {
         if (gameOver || currentPlayer !== attacker) return;
 
-        const result = attacker.attack(defender.getGameBoard(), row, col);
+        const attackOutcome = attacker.attack(defender.getGameBoard(), humanRow, humanCol);
 
-        if (result === null) {
+        if (!attackOutcome || attackOutcome.attackResult === null) {
             DOM.displayMessage('Invalid attack (e.g., already attacked). Try again.', 'error');
             return;
         }
 
-        // Determine whose boards to show based on current attacker for hotseat
-        const attackerBoard = attacker.getGameBoard();
-        const defenderBoard = defender.getGameBoard();
+        const { attackResult, row, col} = attackOutcome
 
 
         DOM.updateBoards(
@@ -354,12 +352,12 @@ const Game = (() => {
         );
 
 
-        const messageType = result === 'hit' ? 'success' : 'info';
+        const messageType = attackResult === 'hit' ? 'success' : 'info';
         let message = '';
         if (attacker.isComputer()) {
-            message = result === 'hit' ? `Computer hit your ship at [${row + 1}, ${String.fromCharCode(65 + col)}]!` : `Computer missed at [${row + 1}, ${String.fromCharCode(65 + col)}]!`;
+            message = attackResult === 'hit' ? `Computer hit your ship at [${row + 1}, ${String.fromCharCode(65 + col)}]!` : `Computer missed at [${row + 1}, ${String.fromCharCode(65 + col)}]!`;
         } else {
-            message = result === 'hit' ? `Hit enemy ship at [${row + 1}, ${String.fromCharCode(65 + col)}]!` : `Missed at [${row + 1}, ${String.fromCharCode(65 + col)}]!`;
+            message = attackResult === 'hit' ? `Hit enemy ship at [${row + 1}, ${String.fromCharCode(65 + col)}]!` : `Missed at [${row + 1}, ${String.fromCharCode(65 + col)}]!`;
         }
         DOM.displayMessage(message, messageType);
         
