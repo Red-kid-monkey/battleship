@@ -38,40 +38,41 @@ const Player = (name, isComputer = false) => {
 
         // Try AI-targeted cells first
         while (aiState.potentialTargets.length > 0) {
-            const [ row, col ] = aiState.potentialTargets.shift() // Get the highest priority target
-            const key = `${row}, ${col}`
-            if (row >= 0 && row < boardSize && col >= 0 && col < boardSize && !previousAttacks.has(key)) {
+            const target = aiState.potentialTargets.pop();
+            const { row, col} = target;
+            const key = `${row},${col}`; // key without space
+            if (!previousAttacks.has(key) && row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
                 return [row, col];
             }
         }
 
         // Fallback to random attack if no smart targets
-        let row, col, key;
+        let r, c, k;
         let attempts = 0;
         const maxAttempts = 100; // Prevent infinite loop
 
         do {
-            row = getRandomInt(0, boardSize - 1);
-            col = getRandomInt(0, boardSize - 1);
-            key = `${row},${col}`;
+            r = getRandomInt(0, boardSize - 1);
+            c = getRandomInt(0, boardSize - 1);
+            k = `${r},${c}`; // key without space
             attempts++;
 
             // if we've tried too many times, start searching systematically
             if (attempts > maxAttempts) {
-            for (let r = 0; r < boardSize; r++) {
-                for (let c = 0; c < boardSize; c++) {
-                    const newKey = `${r},${c}`;
+            for (let sr = 0; sr < boardSize; sr++) {
+                for (let sc = 0; sc < boardSize; sc++) {
+                    const newKey = `${sr},${sc}`;
                     if (!previousAttacks.has(newKey)) {
-                        return [r, c];
+                        return [sr, sc];
                     }
                 }
             }
             // if we get here, the board is full
             return null;
             }
-        } while (previousAttacks.has(key));
+        } while (previousAttacks.has(k));
 
-        return [row, col];
+        return [r, c];
     };
 
     return {
@@ -93,38 +94,35 @@ const Player = (name, isComputer = false) => {
         /**
          * Make an attack the enemy's gameboard
          * @param {object} enemyGameboard - The oppenent's gameboard
-         * @param {number} [row] - Row coordinate (for human player)
-         * @param {number} [col] - Column coordinate (for human player)
+         * @param {number} [humanRow] - Row coordinate (for human player)
+         * @param {number} [humanCol] - Column coordinate (for human player)
          * @returns {string|null} Attack result: 'hit', 'miss', or null
          */
-        attack(enemyGameboard, row, col) {
-            let attackCoordinates;
+        attack(enemyGameboard, humanRow, humanCol) {
+            let r, c;
             if (isComputer) {
-                attackCoordinates = generateRandomAttack(enemyGameboard);
+                const attackCoordinates = generateRandomAttack(enemyGameboard);
                 if (!attackCoordinates) {
-                    return null;
+                    return { attackResult: null, row: -1, col: -1};
                 }
-                [row, col] = attackCoordinates;
+                [r, c] = attackCoordinates;
             } else {
-                if (previousAttacks.has(`${row},${col}`)) {
-                    return null;
-                }
+                r = humanRow;
+                c = humanCol;
             }
 
-            const key = `${row},${col}`;
+            const key = `${r},${c}`
 
-            // Prevent re-attacking the same cell by the same player
             if (previousAttacks.has(key)) {
-                return null;
+                return { attackResult: null, row: r, col: c}
             }
 
-            // Record this attack
-            previousAttacks.add(`${row},${col}`);
+            previousAttacks.add(key);
+            const boardAttackResult = enemyGameboard.receiveAttack(r, c);
 
-            const result = enemyGameboard.receiveAttack(row, col);
 
-            if (isComputer && result === 'hit') {
-                const hitCell = enemyGameboard.getBoard()[row][col];
+            if (isComputer && boardAttackResult === 'hit') {
+                const hitCell = enemyGameboard.getBoard()[r][c];
                 if (hitCell && hitCell.ship) {
                     if (hitCell.ship.isSunk()) {
                         // Ship is sunk, clear current targets and streak
@@ -136,26 +134,30 @@ const Player = (name, isComputer = false) => {
                         const newTargets = [];
                         const deltas = [[-1, 0], [1, 0], [0, -1], [0,1]]; // N, S, W, E
 
-                        deltas.forEach(([dr, dc]) => {
-                            const nextRow = row + dr;
-                            const nextCol = col + dc;
-                            const targetKey = `${nextRow}, ${nextCol}`
+                        const boardSize = enemyGameboard.getBoard().length;
 
-                            if (nextRow >= 0 && nextRow < boardSize &&
-                                nextCol >= 0 && nextCol < boardSize &&
-                                !previousAttacks.has(targetKey)) {
-                                    // Avoid duplication to potentialTargets
-                                    if (aiState.potentialTargets.some(t => t.row === nextRow && t.col === nextCol)) {
-                                        newTargets.push({ row: nextRow, col: nextCol });
-                                    }
-                                }
-                            });
-                            // Add new targets to the front of the queue to be tried
-                            aiState.potentialTargets = [...newTargets, ...aiState.potentialTargets];
-                        }
+                        deltas.forEach(([dr, dc]) => {
+                            const nextRow = r + dr;
+                            const nextCol = c + dc;
+                            const targetKey = `${nextRow},${nextCol}`
+
+                             if (
+                                nextRow >= 0 &&
+                                nextRow < boardSize &&
+                                nextCol >= 0 &&
+                                nextCol < boardSize &&
+                                !previousAttacks.has(targetKey) &&
+                                !aiState.potentialTargets.some(t => t.row === nextRow && t.col === nextCol)
+                            ) {
+                                newTargets.push({ row: nextRow, col: nextCol });
+                            }
+                        });
+                        // Add new targets to the end of the stack (LIFO)
+                        aiState.potentialTargets.push(...newTargets);
+                    }
                     }
                 }
-                return null
+                return { attackResult: boardAttackResult, row: r, col: c };
             },
 
             /**
